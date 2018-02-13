@@ -96,14 +96,15 @@ class Question extends React.Component {
             <ControlLabel>Question</ControlLabel>
               <FormControl
                 type="text"
+                inputRef={ref => { this.input = ref; }}
                 // will update the value by dispatch  **TODO** FIXME **use event handler
-                onChange={() => {
-                  store.dispatch({
-                    type:"CHANGE_TEXT",
-                    id:this.props.id,
-                    text:this.value,
-                  });
-                }}
+                onChange=  {() => {
+                    store.dispatch({
+                      type:"CHANGE_TEXT",
+                      id:this.props.id,
+                      text:this.input.value,
+                    });
+                  }}
                 // value={this.state.value}
                 placeholder="Enter question"
               />
@@ -113,11 +114,12 @@ class Question extends React.Component {
               <FormControl
                 componentClass="select"
                 placeholder="select"
+                inputRef={ref => { this.input = ref; }}
                 onChange={() => {
                   store.dispatch({
                     type: "CHANGE_TYPE",
                     id: this.props.id,
-                    answerType: this.value, //**TODO** FIXME, needs selected option value **use event handler
+                    answerType: this.input.value, //**TODO** FIXME, needs selected option value **use event handler
                   })
                 }}
               >

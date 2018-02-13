@@ -9,18 +9,45 @@ import { FormGroup, FormControl, ControlLabel,
 import './index.css';
 
 
-// questions is the forms reducer.
+// questions is the forms reducer on the Create 'page'.
+let qId = 0;
 const questions = (state = [], action) => {
   switch (action.type) {
     case "ADD_QUESTION":
       return [
         ...state, {
-          id: action.id,
+          id: qId++,
           text: action.text,
           answerType: action.answerType,
-          // sub-input = {},
+          // sub-input = [],
         }
       ]
+    case "CHANGE_TYPE":
+      return state.map(question => {
+        if (question.id !== action.id) {
+          return question;
+        }
+
+        return {
+          ...question,
+          answerType: action.answerType // FIXME
+        }
+      }
+    )
+
+    case "CHANGE_TEXT":
+      return state.map(question => {
+        if (question.id !== action.id) {
+          return question;
+        }
+
+        return {
+          ...question,
+          text: action.text // FIXME
+        }
+      }
+    )
+
 //     case "DELETE_QUESTION":
 //       // look for id to del, if ?  !id return q : not empty ....
     default:
@@ -64,46 +91,58 @@ class Question extends React.Component {
           {/*  To inline lable with input field -->
             https://react-bootstrap.github.io/components/forms/#forms-horizontal*/}
           <FormGroup
-            controlId="question" //make controlId unique **TODO**
+            controlId={"question-" + this.props.id} //make controlId unique **TODO**
           >
-              <ControlLabel>Question</ControlLabel>
+            <ControlLabel>Question</ControlLabel>
               <FormControl
                 type="text"
-                // onChange will update the value by dispatch  **TODO**
+                // will update the value by dispatch  **TODO** FIXME **use event handler
+                onChange={() => {
+                  store.dispatch({
+                    type:"CHANGE_TEXT",
+                    id:this.props.id,
+                    text:this.value,
+                  });
+                }}
                 // value={this.state.value}
                 placeholder="Enter question"
-                // onChange={this.handleChange} **TODO**
               />
-            </FormGroup>
-            <FormGroup controlId="type">
+          </FormGroup>
+          <FormGroup controlId={"type-" + this.props.id}>
             <ControlLabel>Type</ControlLabel>
-            <FormControl
-              componentClass="select"
-              placeholder="select"
-              // onChange   **TODO**
-            >
-              <option value="text">Text</option>
-              <option value="number">Number</option>
-              <option value="radio">Yes/No</option>
-            </FormControl>
-            </FormGroup>
+              <FormControl
+                componentClass="select"
+                placeholder="select"
+                onChange={() => {
+                  store.dispatch({
+                    type: "CHANGE_TYPE",
+                    id: this.props.id,
+                    answerType: this.value, //**TODO** FIXME, needs selected option value **use event handler
+                  })
+                }}
+              >
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="radio">Yes/No</option>
+              </FormControl>
+          </FormGroup>
 
             <ButtonToolbar>
-              <Button bsStyle="primary" bsSize="sm" >
-                Sub-Input
-              </Button>
-              <Button bsStyle="danger" bsSize="sm" >
-                Delete
-              </Button>
-            </ButtonToolbar>
+                <Button bsStyle="primary" bsSize="sm" >
+                  Sub-Input
+                </Button>
 
+                <Button bsStyle="danger" bsSize="sm" >
+                  Delete
+                </Button>
+            </ButtonToolbar>
         </form>
       </div>
     )
   }
 }
 
-let qId = 0;
+
 class FormBuilder extends React.Component {
 
   // use map to get each q from state and create each form
@@ -121,7 +160,7 @@ class FormBuilder extends React.Component {
         <ul>
           {this.props.questions.map(qu =>
           <li key={qu.id}>
-            <Question/>
+            <Question id={qu.id}/>
           </li>
           )}
         </ul>
@@ -134,7 +173,6 @@ class FormBuilder extends React.Component {
           onClick={()=> {
             store.dispatch({
               type: "ADD_QUESTION",
-              id: qId++,
               text: "newQuestion",
               answerType: "text" //could be "radio" or "number"
             })

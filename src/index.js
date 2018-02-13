@@ -1,71 +1,165 @@
-import React from 'react';
+import React  from 'react';
 import ReactDOM from 'react-dom';
+import {createStore, combineReducers } from 'redux';
+import { FormGroup, FormControl, ControlLabel,
+        PageHeader,
+        Button, ButtonToolbar, } from 'react-bootstrap';
+// import 'bootstrap/dist/css/bootstrap.css';
+// import 'bootstrap/dist/css/bootstrap-theme.css';
 import './index.css';
-// import App from './App';
-// import registerServiceWorker from './registerServiceWorker';
 
 
-// hirerarchy:
-// FormBuilderApp holds state for
-  // CreateForm - allows user to add question, with conditions.
-  // PreviewForm - renders actual form as defined in builder (lots of behaviors)
-  // ExportForm - generic shows all state as JSON
-
-// CreateForm will need individual componets or functions. Probably functions?
-  // question
-  // type - form with three options - 1. text, 2. number, 3. yes/no (radio)
-  // condition - will use question and type
-  // buttons - addcondition, delete, addQuestion
-
-const questionStyle = {
-  width: '50%',
-  border: '1px solid gray',
-  display: 'block',
+// questions is the forms reducer.
+const questions = (state = [], action) => {
+  switch (action.type) {
+    case "ADD_QUESTION":
+      return [
+        ...state, {
+          id: action.id,
+          text: action.text,
+          answerType: action.answerType,
+          // sub-input = {},
+        }
+      ]
+//     case "DELETE_QUESTION":
+//       // look for id to del, if ?  !id return q : not empty ....
+    default:
+      return state;
+//
+  }
 };
 
-function selectInputType () {
-  return (
+// visibilityFilter will set the view based on the Nav selected
+const view = (
+  state = "CREATE_FORMS",
+  action
+) => {
+    switch (action.type) {
+      case "CHANGE_VIEW":
+        return action.filter;
+      default:
+        return state;
+    }
+  };
 
-      <select>
-        <option value='text'>Text</option>
-        <option value='number'>Number</option>
-        <option value='yes/no'>Yes/No</option>
-      </select>
 
-  )
+const formBuilder = combineReducers({
+  questions,
+  view,
+});
+
+// the store holds state for the form-builder application, questions is the reducer
+const store = createStore(formBuilder);
+
+
+//////////// REACT COMPONENTS ///////////////
+class Question extends React.Component {
+
+  render () {
+    // console.log(store.getState());
+    return (
+
+      <div>
+        <form>
+          {/*  To inline lable with input field -->
+            https://react-bootstrap.github.io/components/forms/#forms-horizontal*/}
+          <FormGroup
+            controlId="question" //make controlId unique **TODO**
+          >
+              <ControlLabel>Question</ControlLabel>
+              <FormControl
+                type="text"
+                // onChange will update the value by dispatch  **TODO**
+                // value={this.state.value}
+                placeholder="Enter question"
+                // onChange={this.handleChange} **TODO**
+              />
+            </FormGroup>
+            <FormGroup controlId="type">
+            <ControlLabel>Type</ControlLabel>
+            <FormControl
+              componentClass="select"
+              placeholder="select"
+              // onChange   **TODO**
+            >
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="radio">Yes/No</option>
+            </FormControl>
+            </FormGroup>
+
+            <ButtonToolbar>
+              <Button bsStyle="primary" bsSize="sm" >
+                Sub-Input
+              </Button>
+              <Button bsStyle="danger" bsSize="sm" >
+                Delete
+              </Button>
+            </ButtonToolbar>
+
+        </form>
+      </div>
+    )
+  }
 }
 
-class Question extends React.Component{
+let qId = 0;
+class FormBuilder extends React.Component {
 
+  // use map to get each q from state and create each form
+  // will have navs here
   render() {
-    return(
-      <div style={questionStyle} >
-        <form>
-          <p>
-            <lable>Question:
-              <input
-                size='75'
-                type='text'></input>
-            </lable>
-          </p>
-          <p>
-            <lable>Type:
-              {selectInputType()}
-            </lable>
-          </p>
-          <button type="button">
-            Add Sub-Input
-          </button>
-          <button type="button">Delete</button>
-        </form>
+    console.log(store.getState());
+    return (
+      <div>
+        <div>
+        <PageHeader>
+          Form Builder 0.1
+        </PageHeader>
+        </div>
+
+        <ul>
+          {this.props.questions.map(qu =>
+          <li key={qu.id}>
+            <Question/>
+          </li>
+          )}
+        </ul>
+
+        <div>
+        <Button
+          bsStyle="primary"
+          bsSize="large"
+          active
+          onClick={()=> {
+            store.dispatch({
+              type: "ADD_QUESTION",
+              id: qId++,
+              text: "newQuestion",
+              answerType: "text" //could be "radio" or "number"
+            })
+          }}
+          >
+          Add Input
+        </Button>
+        </div>
 
       </div>
     );
   }
 }
 
+/////////// END REACT COMPONENTS///////////////
 
-ReactDOM.render(<Question />, document.getElementById('root'));
 
+// define a render function that can be subscribed, and will be reacalled after
+// any update to the store's state.
+const render = () => {
+  ReactDOM.render(
+    <FormBuilder
+    questions={store.getState().questions}/>,
+    document.getElementById('root'));
+}
 
-// model = {question: {type: text/number/yn , conditions: []}}
+store.subscribe(render);
+render();

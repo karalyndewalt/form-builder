@@ -115,6 +115,7 @@ const Condition = ({
 const AnswerType = ({
   // some props
   id,
+  answerType,
   onChange,
 }) => (
   <FormGroup controlId={"type-" + id}>
@@ -125,7 +126,7 @@ const AnswerType = ({
       <FormControl
         componentClass="select"
         onChange={(evt) => onChange(evt.target.value)}
-        // value={this.}
+        value={answerType}
       >
         <option value="text">Text</option>
         <option value="number">Number</option>
@@ -136,58 +137,66 @@ const AnswerType = ({
 
 );
 
+class Question extends React.Component {
+  constructor(props) {
+    super(props);
+    // bind handlers to 'this' here
+  }
+  // write handlers here
+  render () {
 
-const Question = ({
-  // props
-  question,
-  onAnswerTypeChange,
-}) => (
-  <div>
-      <Well bsSize="large">
-        {/*TODO Add condition t/f to   */}
-        {question.condition ? <Condition/> : null}
-        <Form horizontal>
-          <FormGroup
-            controlId={"question-" + question.id}
-          >
-            <Col componentClass={ControlLabel} sm={2}>
-              Question
-            </Col>
-            <Col  componentClass={ControlLabel} sm={10}>
-              <FormControl
-                type="text"
-                inputRef={ref => { this.input = ref; }}
-                onChange=  {() => {
-                    store.dispatch({
-                      type:"CHANGE_TEXT",
-                      id: question.id,
-                      text:this.input.value,
-                    });
-                  }}
-                // value={this.state.value}
-                placeholder="Enter question"
-              />
-            </Col>
-          </FormGroup>
+  const { question,  onAnswerTypeChange } = this.props;
+  // const onAnswerTypeChange = this.props.onAnswerTypeChange;
 
-          <AnswerType
-            id={question.id}
-            // pass question.answerType to the value in the FormControl
-            onChange={ (value) => onAnswerTypeChange(question.id, value) }/>
+    return (
+      <div>
+          <Well bsSize="large">
+            {question.condition ? <Condition/> : null}
+            <Form horizontal>
+              <FormGroup
+                controlId={"question-" + question.id}
+              >
+                <Col componentClass={ControlLabel} sm={2}>
+                  Question
+                </Col>
+                <Col  componentClass={ControlLabel} sm={10}>
+                  <FormControl
+                    type="text"
+                    // inputRef={ref => { this.input = ref; }}
+                    onChange=  {(evt) => {
+                        store.dispatch({
+                          type:"CHANGE_TEXT",
+                          id: question.id,
+                          text: evt.target.value,
+                        });
+                      }}
+                    value={question.text}
+                    placeholder="Enter question"
+                  />
+                </Col>
+              </FormGroup>
 
-          <ButtonToolbar>
-              <Button bsStyle="primary" bsSize="sm" >
-                Sub-Input
-              </Button>
-              {/*  TODO will need dispatch at some point */}
-              <Button bsStyle="danger" bsSize="sm" >
-                Delete
-              </Button>
-          </ButtonToolbar>
-        </Form>
-    </Well>
-  </div>
-);
+              <AnswerType
+                id={question.id}
+                answerType={question.answerType}
+                // pass question.answerType to the value in the FormControl
+                onChange={ (value) => onAnswerTypeChange(question.id, value) }/>
+
+              <ButtonToolbar>
+                  <Button bsStyle="primary" bsSize="sm" >
+                    Sub-Input
+                  </Button>
+                  {/*  TODO will need dispatch at some point */}
+                  <Button bsStyle="danger" bsSize="sm" >
+                    Delete
+                  </Button>
+              </ButtonToolbar>
+            </Form>
+        </Well>
+      </div>
+    );
+  }
+}
 
 
 const Questions = ({
@@ -243,7 +252,7 @@ class FormBuilder extends React.Component {
               store.dispatch({
                 type: "ADD_QUESTION",
                 text: "newQuestion",
-                answerType: "text",
+                answerType: "number",
                 condition: null, //could be "radio" or "number"
               })
             }}

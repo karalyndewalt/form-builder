@@ -4,7 +4,8 @@ import {createStore, combineReducers } from 'redux';
 import { Form, FormGroup, FormControl, ControlLabel, Col,
         PageHeader,
         Button, ButtonToolbar,
-        Well, } from 'react-bootstrap';
+        Well,
+        Nav, NavItem, } from 'react-bootstrap';
 // import 'bootstrap/dist/css/bootstrap.css';
 // import 'bootstrap/dist/css/bootstrap-theme.css';
 import './index.css';
@@ -15,15 +16,38 @@ let qId = 0;
 const questions = (state = [], action) => {
   switch (action.type) {
     case "ADD_QUESTION":
+      const id = qId++
       return [
         ...state, {
-          id: qId++,
+          id: id,
           text: action.text,
           answerType: action.answerType,
           condition: action.condition,
-          // sub-input = [],
+          path: [id],
+          subInput: [],
         }
-      ]
+      ];
+
+    case "ADD_SUB_Q": // FIXME NEEDS TO BE RECURSIVE.
+    // The path attribute of each question functions like a pre made and direct
+    // queue leading to the child.
+      const subId = qId++
+      return state.map(question => {
+        if (question.id !== action.parentPath[0]){
+          return question;
+        }
+        return {
+          ...question,
+          subInput: [...question.subInput, {
+            id: subId,
+            text: action.text,
+            answerType: action.answerType,
+            condition: action.condition,
+            path:[...action.parentPath, subId],
+          }]
+        }
+      })
+
     case "CHANGE_TYPE":
       return state.map(question => {
         if (question.id !== action.id) {
@@ -35,7 +59,7 @@ const questions = (state = [], action) => {
           answerType: action.answerType // FIXME
         }
       }
-    )
+    );
 
     case "CHANGE_TEXT":
       return state.map(question => {
@@ -59,7 +83,7 @@ const questions = (state = [], action) => {
 
 // view will set the view based on the Nav selected
 const view = (
-  state = "CREATE_FORMS",
+  state = "CREATE",
   action
 ) => {
     switch (action.type) {
@@ -128,6 +152,7 @@ const AnswerType = ({
         onChange={(evt) => onChange(evt.target.value)}
         value={answerType}
       >
+        <option value="">select</option>
         <option value="text">Text</option>
         <option value="number">Number</option>
         <option value="radio">Yes/No</option>
@@ -141,8 +166,17 @@ class Question extends React.Component {
   constructor(props) {
     super(props);
     // bind handlers to 'this' here
+    // this.handleTextChange = this.handleTextChange.bind(this);
   }
-  // write handlers here
+
+  // handleTextChange(evt, id) {
+  //   store.dispatch({
+  //     type: "CHANGE_TEXT",
+  //     id: id,
+  //     text: evt.target.value,
+  //   });
+  // }
+
   render () {
 
   const { question,  onAnswerTypeChange } = this.props;
@@ -162,10 +196,10 @@ class Question extends React.Component {
                 <Col  componentClass={ControlLabel} sm={10}>
                   <FormControl
                     type="text"
-                    // inputRef={ref => { this.input = ref; }}
-                    onChange=  {(evt) => {
-                        store.dispatch({
-                          type:"CHANGE_TEXT",
+                    // onChange={(id) => {this.handleTextChange(id)}}
+                    onChange={(evt) => {
+                      store.dispatch({
+                          type: "CHANGE_TEXT",
                           id: question.id,
                           text: evt.target.value,
                         });
@@ -183,7 +217,19 @@ class Question extends React.Component {
                 onChange={ (value) => onAnswerTypeChange(question.id, value) }/>
 
               <ButtonToolbar>
-                  <Button bsStyle="primary" bsSize="sm" >
+                  <Button bsStyle="primary" bsSize="sm"
+                    onClick={() => {
+                      store.dispatch({
+                        type: "ADD_SUB_Q",
+                        // no defualt values for text, aType, condition(?)
+                        // ... we do want the values
+                        parentPath: question.path,
+                        condition:"equals",
+                        text: "",
+                        answerType: "text",
+                      });
+                    }}
+                  >
                     Sub-Input
                   </Button>
                   {/*  TODO will need dispatch at some point */}
@@ -203,26 +249,114 @@ const Questions = ({
   questions,
   onAnswerTypeChange,
 }) => (
-  <div>
     <ul style={{listStyle: 'none'}}>
       {questions.map(question =>
       <li key={question.id}>
         <Question
           question={question}
           onAnswerTypeChange={onAnswerTypeChange}/>
+        {question.subInput ? <Questions
+                                questions={question.subInput}
+                                onAnswerTypeChange={onAnswerTypeChange} /> : null}
       </li>
       )}
     </ul>
-  </div>
 );
+
+class Create extends React.Component {
+
+  render() {
+    const questions = this.props.questions
+
+    return (
+    <div>
+      <div>
+        <Questions
+          questions={questions}
+          onAnswerTypeChange={ (id, answerType) => {
+            store.dispatch({
+              type: "CHANGE_TYPE",
+              id,
+              answerType,
+            })
+          }}
+        />
+      </div>
+
+      <div>
+        <Button
+          bsStyle="primary"
+          bsSize="large"
+          active
+          onClick={() => {
+            store.dispatch({
+              type: "ADD_QUESTION",
+              text: "newQuestion",
+              answerType: "number",
+              condition:null, //could be "radio" or "number"
+            });
+          }}
+          >
+          Add Input
+        </Button>
+      </div>
+    </div>
+    );
+  }
+}
+
+const Export = ({
+  store,
+}) => (
+
+  <Form>
+    <FormGroup controlId="formControlsTextarea">
+      <ControlLabel>JSON</ControlLabel>
+      <FormControl componentClass="textarea"
+                  value={JSON.stringify(store.questions)}
+      />
+    </FormGroup>
+  </Form>
+
+)
+
+class ViewNav extends React.Component {
+
+  handleSelect(eventKey, event) {
+    event.preventDefault();
+    store.dispatch({
+      type:"CHANGE_VIEW",
+      filter:eventKey
+    })
+  }
+  render () {
+    return (
+      <Nav bsStyle="tabs" onSelect={(k,evt) => this.handleSelect(k, evt)}>
+        <NavItem eventKey="CREATE" href="/home">
+          Create
+        </NavItem>
+        <NavItem eventKey="PREVIEW" title="Item">
+          Preview
+        </NavItem>
+        <NavItem eventKey="EXPORT" >
+          Export
+        </NavItem>
+      </Nav>
+    );
+  }
+}
+
+
 
 class FormBuilder extends React.Component {
 
-  // use map to get each q from state and create each form
-  // will have navs here
   render() {
     console.log(store.getState()); //TODO REMOVE ME EVENTUALLY
-    const questions = this.props.questions
+    // console.log(view);
+
+    const questions = this.props.store.questions;
+    const view = this.props.store.view;
+    // const store = this.props.store; // I'm not working because of hoisting -- using the console as
 
     return (
       <div>
@@ -231,34 +365,12 @@ class FormBuilder extends React.Component {
             Form Builder 0.1
           </PageHeader>
         </div>
-
-          <Questions
-            questions={questions}
-            onAnswerTypeChange={ (id, answerType) => {
-              store.dispatch({
-                type: "CHANGE_TYPE",
-                id,
-                answerType,
-              })
-            }}
-          />
-
         <div>
-          <Button
-            bsStyle="primary"
-            bsSize="large"
-            active
-            onClick={()=> {
-              store.dispatch({
-                type: "ADD_QUESTION",
-                text: "newQuestion",
-                answerType: "number",
-                condition: null, //could be "radio" or "number"
-              })
-            }}
-            >
-            Add Input
-          </Button>
+        <ViewNav />
+        </div>
+        <div>
+          { view === "CREATE" ?  <Create questions={questions} /> : null}
+          { view === "EXPORT" ?  <Export store={this.props.store} /> : null}
         </div>
       </div>
     );
@@ -273,7 +385,9 @@ class FormBuilder extends React.Component {
 const render = () => {
   ReactDOM.render(
     <FormBuilder
-    questions={store.getState().questions}
+      store={store.getState()}
+    // questions={store.getState().questions}
+    // view={}
     />,
     document.getElementById('root'));
 }

@@ -11,6 +11,79 @@ import { Form, FormGroup, FormControl, ControlLabel, Col,
 import './index.css';
 
 
+const addSubQuestion = (stateList, action, subId, pathToParent) => {
+  console.log(pathToParent);
+
+  const [ head, ...tail ] = pathToParent;
+
+  console.log("head is: " + head)
+  console.log("tail is: " + tail)
+  // using map give back the state as a list...
+  // each state passed through is either the top level state or the subInput,
+  // which is also a list.
+  return stateList.map((question) => {
+    // get all parents outside of my path (current head)
+    console.log(question)
+    if (question.id !== head){
+      console.log("Question: " + question.id + ". Not part of path, skipping.")
+      return question;
+    }
+    // this is a parent in the path. if we still have a tail, keep going but we need this question and its subInput
+    else if (tail.length > 0 ) {
+      console.log("Checking sub of question: " + question.id)
+      return {
+      ...question,
+      subInput: addSubQuestion(question.subInput, action, subId, tail)
+                              // ^^^copy my subInput//
+      };
+    }
+    // base case length tail = 0 >>> then head IS my parent's id, add me to this
+    // questions subInput.
+    else {
+      console.log("returning updated question ")
+      return {
+        ...question,
+        subInput: [ ...question.subInput, {
+          id: subId,
+          text: action.text,
+          answerType: action.answerType,
+          condition: action.condition,
+          path:[ ...action.parentPath, subId],
+          subInput: [],
+        }]
+      };
+    }
+  })
+  }
+
+const deleteQuestion = (stateList, id, pathTo) => {
+
+  const [ head, ...tail ] = pathTo;
+
+  return stateList.map( (question) => {
+    console.log(question)
+
+    if (question.id !== head) {
+      return question;
+    }
+
+    else if (tail.length > 1) {
+      return {
+        ...question,
+        subInput: deleteQuestion(question.subInput, id, tail)
+      };
+    }
+    // tail length is one, I am at parent and I can filter for the one to delete
+    // from my subInput attribute
+    else {
+      return {
+        ...question,
+        subInput: question.subInput.filter( q =>  q.id !== tail[0]) //could use id instead of tail.
+      };
+    }
+  })
+}
+
 // questions is the forms reducer on the Create 'page'.
 let qId = 0;
 const questions = (state = [], action) => {
@@ -31,22 +104,26 @@ const questions = (state = [], action) => {
     case "ADD_SUB_Q": // FIXME NEEDS TO BE RECURSIVE.
     // The path attribute of each question functions like a pre made and direct
     // queue leading to the child.
-      const subId = qId++
-      return state.map(question => {
-        if (question.id !== action.parentPath[0]){
-          return question;
-        }
-        return {
-          ...question,
-          subInput: [...question.subInput, {
-            id: subId,
-            text: action.text,
-            answerType: action.answerType,
-            condition: action.condition,
-            path:[...action.parentPath, subId],
-          }]
-        }
-      })
+      console.log(action)
+      const subId = qId++;
+      // return state.map(question => {
+      //   if (question.id !== action.parentPath[0]){
+      //     return question;
+      //   }
+      //   return {
+      //     ...question,
+      //     subInput: [...question.subInput, {
+      //       id: subId,
+      //       text: action.text,
+      //       answerType: action.answerType,
+      //       condition: action.condition,
+      //       path:[...action.parentPath, subId],
+      //       subInput: []
+      //     }]
+      //   }
+      // })
+
+      return addSubQuestion(state, action, subId, action.parentPath);
 
     case "CHANGE_TYPE":
       return state.map(question => {
@@ -74,8 +151,14 @@ const questions = (state = [], action) => {
       }
     )
 
-//     case "DELETE_QUESTION":
-//       // look for id to del, if ?  !id return q : not empty ....
+    case "DELETE_QUESTION":
+
+      if (action.path.length === 1) {
+        return state.filter(q => q.id !== action.id);
+      }
+
+      return deleteQuestion(state, action.id, action.path);
+
     default:
       return state;
   }
@@ -163,11 +246,11 @@ const AnswerType = ({
 );
 
 class Question extends React.Component {
-  constructor(props) {
-    super(props);
+  // constructor(props) {
+  //   super(props);
     // bind handlers to 'this' here
     // this.handleTextChange = this.handleTextChange.bind(this);
-  }
+  // }
 
   // handleTextChange(evt, id) {
   //   store.dispatch({
@@ -221,8 +304,6 @@ class Question extends React.Component {
                     onClick={() => {
                       store.dispatch({
                         type: "ADD_SUB_Q",
-                        // no defualt values for text, aType, condition(?)
-                        // ... we do want the values
                         parentPath: question.path,
                         condition:"equals",
                         text: "",
@@ -233,7 +314,15 @@ class Question extends React.Component {
                     Sub-Input
                   </Button>
                   {/*  TODO will need dispatch at some point */}
-                  <Button bsStyle="danger" bsSize="sm" >
+                  <Button bsStyle="danger" bsSize="sm"
+                    onClick={ () => {
+                      store.dispatch({
+                        type: "DELETE_QUESTION",
+                        path: question.path,
+                        id: question.id,
+                      })
+                    }}
+                  >
                     Delete
                   </Button>
               </ButtonToolbar>
@@ -284,16 +373,16 @@ class Create extends React.Component {
       </div>
 
       <div>
-        <Button
+      <Button
           bsStyle="primary"
           bsSize="large"
           active
           onClick={() => {
             store.dispatch({
               type: "ADD_QUESTION",
-              text: "newQuestion",
-              answerType: "number",
-              condition:null, //could be "radio" or "number"
+              text: "",
+              answerType: "number", //could be "radio" or "number"
+              condition:null,
             });
           }}
           >
@@ -308,11 +397,11 @@ class Create extends React.Component {
 const Export = ({
   store,
 }) => (
-
+  // <pre>{JSON.stringify(store.questions)}</pre>
   <Form>
     <FormGroup controlId="formControlsTextarea">
       <ControlLabel>JSON</ControlLabel>
-      <FormControl componentClass="textarea"
+      <FormControl componentClass="textarea" autoresize
                   value={JSON.stringify(store.questions)}
       />
     </FormGroup>

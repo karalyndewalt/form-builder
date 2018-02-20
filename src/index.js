@@ -11,57 +11,70 @@ import { Form, FormGroup, FormControl, ControlLabel, Col,
 import './index.css';
 
 
-const addSubQuestion = (stateList, action, subId, pathToParent) => {
-  console.log(pathToParent);
+const update = (stateList, action, path, fn) => {
+  // The path attribute acts as direct queue leading to the child.
+  // for addding subInput path is to the parent, for everything else it is the
+  // question object itself
+  const [ head, ...tail ] = path;
 
-  const [ head, ...tail ] = pathToParent;
-
-  console.log("head is: " + head)
-  console.log("tail is: " + tail)
   // using map give back the state as a list...
-  // each state passed through is either the top level state or the subInput,
-  // which is also a list.
+  // each state is either the top level state or a subInput (list),
   return stateList.map((question) => {
     // get all parents outside of my path (current head)
-    console.log(question)
+    // console.log(question)
     if (question.id !== head){
-      console.log("Question: " + question.id + ". Not part of path, skipping.")
       return question;
     }
-    // this is a parent in the path. if we still have a tail, keep going but we need this question and its subInput
+    // this is in the path. if we still have a tail, keep going but we need this question and its subInput
     else if (tail.length > 0 ) {
-      console.log("Checking sub of question: " + question.id)
       return {
       ...question,
-      subInput: addSubQuestion(question.subInput, action, subId, tail)
+      subInput: update(question.subInput, action, tail, fn)
                               // ^^^copy my subInput//
       };
     }
-    // base case length tail = 0 >>> then head IS my parent's id, add me to this
-    // questions subInput.
+    // length tail = 0 >>> then head IS my parent's id, add me to this
+    // question's subInput.
     else {
-      console.log("returning updated question ")
-      return {
-        ...question,
-        subInput: [ ...question.subInput, {
-          id: subId,
-          text: action.text,
-          answerType: action.answerType,
-          condition: action.condition,
-          path:[ ...action.parentPath, subId],
-          subInput: [],
-        }]
-      };
+      return fn(action, question);
     }
   })
   }
+
+const updateSubInput = (action, question) => {
+  const subId = qId++;
+  return {
+    ...question,
+    subInput: [ ...question.subInput, {
+      id: subId,
+      text: action.text,
+      answerType: action.answerType,
+      condition: action.condition,
+      path: [ ...action.parentPath, subId],
+      subInput: [],
+    }]
+  };
+}
+
+const updateText = (action, question) => {
+  return {
+    ...question,
+    text: action.text
+  };
+}
+
+const updateType = (action, question) => {
+  return {
+    ...question,
+    answerType: action.answerType
+  };
+}
 
 const deleteQuestion = (stateList, id, pathTo) => {
 
   const [ head, ...tail ] = pathTo;
 
   return stateList.map( (question) => {
-    console.log(question)
 
     if (question.id !== head) {
       return question;
@@ -73,8 +86,7 @@ const deleteQuestion = (stateList, id, pathTo) => {
         subInput: deleteQuestion(question.subInput, id, tail)
       };
     }
-    // tail length is one, I am at parent and I can filter for the one to delete
-    // from my subInput attribute
+    // tail length is one, this is the parent, can filter on id to delete
     else {
       return {
         ...question,
@@ -84,7 +96,7 @@ const deleteQuestion = (stateList, id, pathTo) => {
   })
 }
 
-// questions is the forms reducer on the Create 'page'.
+// questions is the forms reducer for the Create 'page'.
 let qId = 0;
 const questions = (state = [], action) => {
   switch (action.type) {
@@ -101,55 +113,8 @@ const questions = (state = [], action) => {
         }
       ];
 
-    case "ADD_SUB_Q": // FIXME NEEDS TO BE RECURSIVE.
-    // The path attribute of each question functions like a pre made and direct
-    // queue leading to the child.
-      console.log(action)
-      const subId = qId++;
-      // return state.map(question => {
-      //   if (question.id !== action.parentPath[0]){
-      //     return question;
-      //   }
-      //   return {
-      //     ...question,
-      //     subInput: [...question.subInput, {
-      //       id: subId,
-      //       text: action.text,
-      //       answerType: action.answerType,
-      //       condition: action.condition,
-      //       path:[...action.parentPath, subId],
-      //       subInput: []
-      //     }]
-      //   }
-      // })
-
-      return addSubQuestion(state, action, subId, action.parentPath);
-
-    case "CHANGE_TYPE":
-      return state.map(question => {
-        if (question.id !== action.id) {
-          return question;
-        }
-
-        return {
-          ...question,
-          answerType: action.answerType // FIXME
-        }
-      }
-    );
-
-    case "CHANGE_TEXT":
-      return state.map(question => {
-        if (question.id !== action.id) {
-          return question;
-        }
-
-        return {
-          ...question,
-          text: action.text // FIXME
-        }
-      }
-    )
+    case "ADD_SUB_Q":
+      return update(state, action, action.parentPath, updateSubInput);
 
     case "DELETE_QUESTION":
 
@@ -158,6 +123,18 @@ const questions = (state = [], action) => {
       }
 
       return deleteQuestion(state, action.id, action.path);
+
+    case "CHANGE_TYPE":
+      return update(state, action, action.path, updateType);
+
+    case "CHANGE_TEXT":
+      return update(state, action, action.path, updateText);
+
+    case "CHANGE_COND_TYPE":
+      return state; // FIXME
+
+    case "CHANGE_COND_VAL":
+      return state; // FIXME
 
     default:
       return state;
@@ -194,33 +171,40 @@ const Condition = ({
 
 }) => (
   <Form inline >
-    <FormGroup controlId={"condition-" + id} >
+    <FormGroup controlId={"condType-" + id} >
       <ControlLabel>Condition</ControlLabel>{' '}
         <FormControl
           componentClass="select"
-          // inputRef={ref => { this.input = ref; }}
-          // onChange={() => {
-          //   store.dispatch({
-          //     type: "CHANGE_TYPE",
-          //     id: this.props.id,
-          //     answerType: this.input.value, //**TODO** FIXME, needs selected option value **use event handler
-          //   })
-          // }}
+          onChange={(evt) => {
+            store.dispatch({
+              type: "CHANGE_COND_TYPE",
+              id: id,
+              conditionType: evt.target.value,
+            })
+          }}
         >
           <option value="equal">Equals</option>
           <option value="greater">Greater than</option>
           <option value="less">Less than</option>
         </FormControl>
     </FormGroup>{" "}
-    <FormGroup controlId="formInlineName">
-      <FormControl type="number" placeholder="value" />
+    <FormGroup controlId={"condVal-" + id} >
+      {/* set type using the action attribute from 'add subInput' */}
+      <FormControl type="number" placeholder="value"
+        onChange={(evt) => {
+          store.dispatch({
+            type: "CHANGE_COND_VAL",
+            id: id,
+            conditionValue: evt.target.value,
+          })
+        }}
+      />
     </FormGroup>
 
   </Form>
 )
 
 const AnswerType = ({
-  // some props
   id,
   answerType,
   onChange,
@@ -246,19 +230,19 @@ const AnswerType = ({
 );
 
 class Question extends React.Component {
-  // constructor(props) {
-  //   super(props);
+  constructor(props) {
+    super(props);
     // bind handlers to 'this' here
-    // this.handleTextChange = this.handleTextChange.bind(this);
-  // }
+    this.handleTextChange = this.handleTextChange.bind(this);
+  }
 
-  // handleTextChange(evt, id) {
-  //   store.dispatch({
-  //     type: "CHANGE_TEXT",
-  //     id: id,
-  //     text: evt.target.value,
-  //   });
-  // }
+  handleTextChange(evt, id) {
+    store.dispatch({
+      type: "CHANGE_TEXT",
+      id: id,
+      text: evt.target.value,
+    });
+  }
 
   render () {
 
@@ -285,6 +269,7 @@ class Question extends React.Component {
                           type: "CHANGE_TEXT",
                           id: question.id,
                           text: evt.target.value,
+                          path: question.path,
                         });
                       }}
                     value={question.text}
@@ -297,7 +282,7 @@ class Question extends React.Component {
                 id={question.id}
                 answerType={question.answerType}
                 // pass question.answerType to the value in the FormControl
-                onChange={ (value) => onAnswerTypeChange(question.id, value) }/>
+                onChange={ (value) => onAnswerTypeChange(question.id, value, question.path) }/>
 
               <ButtonToolbar>
                   <Button bsStyle="primary" bsSize="sm"
@@ -362,11 +347,12 @@ class Create extends React.Component {
       <div>
         <Questions
           questions={questions}
-          onAnswerTypeChange={ (id, answerType) => {
+          onAnswerTypeChange={ (id, answerType, path) => {
             store.dispatch({
               type: "CHANGE_TYPE",
               id,
               answerType,
+              path
             })
           }}
         />
@@ -401,8 +387,8 @@ const Export = ({
   <Form>
     <FormGroup controlId="formControlsTextarea">
       <ControlLabel>JSON</ControlLabel>
-      <FormControl componentClass="textarea" autoresize
-                  value={JSON.stringify(store.questions)}
+      <FormControl componentClass="textarea" readOnly autoresize="true"
+                  value={JSON.stringify(store.questions, null, '\t')}
       />
     </FormGroup>
   </Form>

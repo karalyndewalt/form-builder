@@ -50,6 +50,7 @@ const updateSubInput = (action, question) => {
       text: action.text,
       answerType: action.answerType,
       conditionType: action.conditionType,
+      conditionValue: action.conditionValue,
       path: [ ...action.parentPath, subId],
       subInput: [],
     }]
@@ -74,6 +75,13 @@ const updateCondType = (action, question) => {
   return {
     ...question,
     conditionType: action.conditionType,
+  };
+}
+
+const updateCondVal = (action, question) => {
+  return {
+    ...question,
+    conditionValue: action.conditionValue,
   };
 }
 
@@ -141,7 +149,7 @@ const questions = (state = [], action) => {
       return update(state, action, action.path, updateCondType);
 
     case "CHANGE_COND_VAL":
-      return state; // FIXME
+      return update(state, action, action.path, updateCondVal);
 
     default:
       return state;
@@ -178,6 +186,7 @@ class Condition extends React.Component {
     super(props);
     // bind handers here
     this.handleCondTypeChange = this.handleCondTypeChange.bind(this);
+    // this.handleCondValChange = this.handleCondValChange.bind(this);
   }
 
   handleCondTypeChange(evt, id, path) {
@@ -189,8 +198,17 @@ class Condition extends React.Component {
     });
   }
 
+  handleCondValChange(evt, id, path) {
+    store.dispatch({
+      type: "CHANGE_COND_VAL",
+      id,
+      conditionValue: evt.target.value,
+      path,
+    })
+  }
+
   render () {
-    const { id, path, conditionType} = this.props;
+    const { id, path, conditionType, conditionValue} = this.props;
 
     return (
       <Form inline >
@@ -200,15 +218,6 @@ class Condition extends React.Component {
               componentClass="select"
               value={conditionType}
               onChange ={(evt) => {this.handleCondTypeChange(evt, id, path)}}
-
-              // onChange={(evt) => {
-              //   store.dispatch({
-              //     type: "CHANGE_COND_TYPE",
-              //     id,
-              //     conditionType: evt.target.value,
-              //     path: path
-              //   })
-              // }}
             >
               <option value="equal">Equals</option>
               <option value="greater">Greater than</option>
@@ -217,15 +226,11 @@ class Condition extends React.Component {
         </FormGroup>{" "}
         <FormGroup controlId={"condVal-" + id} >
           {/* set type using the action attribute from 'add subInput' */}
-          <FormControl type="number" placeholder="value"
-            onChange={(evt) => {
-              store.dispatch({
-                type: "CHANGE_COND_VAL",
-                id: id,
-                conditionValue: evt.target.value,
-                path
-              })
-            }}
+          <FormControl
+            type="text"
+            placeholder="conditional value"
+            onChange={(evt) => {this.handleCondValChange(evt, id, path)}}
+            value={conditionValue}
           />
         </FormGroup>
       </Form>
@@ -330,6 +335,7 @@ class Question extends React.Component {
                                         id={question.id}
                                         path={question.path}
                                         conditionType={question.conditionType}
+                                        conditionValue={question.conditionValue}
                                      /> : null}
             <Form horizontal>
               <FormGroup
@@ -341,7 +347,7 @@ class Question extends React.Component {
                 <Col  componentClass={ControlLabel} sm={10}>
                   <FormControl
                     type="text"
-                    onChange={(evt, id, path) => {this.handleTextChange(evt, id, question.path)}}
+                    onChange={(evt) => {this.handleTextChange(evt, question.id, question.path)}}
                     value={question.text}
                     placeholder="Enter question"
                   />
@@ -361,6 +367,7 @@ class Question extends React.Component {
                         type: "ADD_SUB_Q",
                         parentPath: question.path,
                         conditionType:"equals",
+                        conditionValue: "",
                         text: "",
                         answerType: "text",
                       });

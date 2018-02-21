@@ -5,12 +5,14 @@ import { Form, FormGroup, FormControl, ControlLabel, Col,
         PageHeader,
         Button, ButtonToolbar,
         Well,
-        Nav, NavItem, } from 'react-bootstrap';
+        Nav, NavItem,
+        Radio, ToggleButtonGroup, ToggleButton, } from 'react-bootstrap';
 // import 'bootstrap/dist/css/bootstrap.css';
 // import 'bootstrap/dist/css/bootstrap-theme.css';
 import './index.css';
 
 
+/////////////// Helper Functions //////////////
 const update = (stateList, action, path, fn) => {
   // The path attribute acts as direct queue leading to the child.
   // for addding subInput path is to the parent, for everything else it is the
@@ -110,7 +112,7 @@ const deleteQuestion = (stateList, id, pathTo) => {
     }
   })
 }
-
+////////////// REDUCERS /////////////////
 // questions is the forms reducer for the Create 'page'.
 let qId = 0;
 const questions = (state = [], action) => {
@@ -238,51 +240,6 @@ class Condition extends React.Component {
   }
 }
 
-// const Condition = ({
-//   id,
-//   conditionType,
-//   path
-//   // handleCondTypeChange,
-// }) => (
-//     <Form inline >
-//       <FormGroup controlId={"condType-" + id} >
-//         <ControlLabel>Condition</ControlLabel>{' '}
-//           <FormControl
-//             componentClass="select"
-//             value={conditionType}
-//             // onChange ={(evt) => handleCondTypeChange(evt)}
-//             onChange={(evt) => {
-//               store.dispatch({
-//                 type: "CHANGE_COND_TYPE",
-//                 id,
-//                 conditionType: evt.target.value,
-//                 path: path
-//               })
-//             }}
-//           >
-//             <option value="equal">Equals</option>
-//             <option value="greater">Greater than</option>
-//             <option value="less">Less than</option>
-//           </FormControl>
-//       </FormGroup>{" "}
-//       <FormGroup controlId={"condVal-" + id} >
-//         {/* set type using the action attribute from 'add subInput' */}
-//         <FormControl type="number" placeholder="value"
-//           onChange={(evt) => {
-//             store.dispatch({
-//               type: "CHANGE_COND_VAL",
-//               id: id,
-//               conditionValue: evt.target.value,
-//               path
-//             })
-//           }}
-//         />
-//       </FormGroup>
-//     </Form>
-// )
-
-
-
 const AnswerType = ({
   id,
   answerType,
@@ -304,8 +261,8 @@ const AnswerType = ({
       </FormControl>
     </Col>
   </FormGroup>
-
 );
+
 
 class Question extends React.Component {
   constructor(props) {
@@ -414,6 +371,7 @@ const Questions = ({
     </ul>
 );
 
+
 class Create extends React.Component {
 
   render() {
@@ -457,20 +415,162 @@ class Create extends React.Component {
   }
 }
 
-const Export = ({
-  store,
+
+const RadioPreview = ({
+  question,
+  handleChange,
 }) => (
-  // <pre>{JSON.stringify(store.questions)}</pre>
+
   <Form>
-    <FormGroup controlId="formControlsTextarea">
-      <ControlLabel>JSON</ControlLabel>
-      <FormControl componentClass="textarea" readOnly autoresize="true"
-                  value={JSON.stringify(store.questions, null, '\t')}
-      />
+    <FormGroup controlId={"question-" + question.id}>
+      <ControlLabel>{question.text}</ControlLabel>
+      <br></br>
+      <ToggleButtonGroup
+          type="radio"
+          name={"q-" + question.id}
+          onClick={(evt) => handleChange(evt.target.value, question.id)}>
+          <ToggleButton name={"q-" + question.id} value={"yes"}>Yes</ToggleButton>
+          <ToggleButton name={"q-" + question.id} value={"no"}>No</ToggleButton>
+    </ToggleButtonGroup>
     </FormGroup>
   </Form>
 
+);
+
+
+const TNPreview = ({
+  question,
+  handleChange,
+}) => (
+  <Form>
+  <FormGroup controlId={"question-" + question.id}>
+    <ControlLabel>{question.text}</ControlLabel>{' '}
+    <FormControl
+      type={question.answerType}
+      placeholder={"Enter " + question.answerType}
+      onChange={(evt) => handleChange(evt.target.value, question.id)}
+    >
+    </FormControl>
+  </FormGroup>
+  </Form>
+);
+
+
+class PreviewQuestions extends React.Component {
+
+  render () {
+
+    const { questions, handleChange } = this.props;
+
+    // function filterForAnswer(question){
+    //
+    // }
+    //
+    // const displayQuestions = questions.filter(
+    //   if (question.id
+    //   return {question}
+    // )
+
+    return (
+      <ul style={{listStyle: 'none'}}>
+        {questions.map( question =>
+          <li key={question.id}>
+            { (question.answerType === "radio") ?
+                  <RadioPreview
+                    question={question}
+                    handleChange={handleChange}
+                  /> :
+                  <TNPreview
+                    question={question}
+                    handleChange={handleChange}
+                   />
+            }
+            {/* {is the question id in answers ? render : null} */}
+          </li>
+        )}
+      </ul>
+    );
+  }
+}
+
+
+class Preview extends React.Component {
+  constructor(props) {
+    super(props);
+
+    var answers = this.props.store.questions.map(
+                                              question => {
+                                                return {id: question.id,
+                                                        userIn: "",
+                                                        type: question.conditionType,
+                                                        }
+                                                  }
+                                              );
+
+    this.state = {
+                questions: this.props.store.questions,
+                answers: answers,
+                }
+                // answers [{id:qid, val:userin},]
+                // filter a list out of answers coresponding to each question
+                // using object for each answer allows mulitple triggers on the
+                // same input. (and should?)
+                // this list of
+    this.handleChange = this.handleChange.bind(this)
+
+  }
+
+  handleChange (value, id) {
+    this.setState((state) => {
+      return {questions: state.questions,
+              answers: state.answers.map( (answer) => {
+                if (answer.id !== id){
+                  return answer
+                }else {
+                  return {
+                    ...answer,
+                    userIn: value
+                  }
+                }
+              })
+            }
+          })
+  }
+  // don't think questions will ever change, updates to answers will
+  // trigger display in the logic (helpers) of the PreviewQuestions class
+
+  render () {
+    // const questions = this.state.questions;
+    console.log("Preview")
+    console.log(JSON.stringify(this.state))
+    return (
+      <PreviewQuestions
+        questions={this.state.questions}
+        answers={this.state.answers}
+        handleChange={this.handleChange}
+      />
+        // handleChange={this.handleChange}
+    );
+  }
+}
+
+const Export = ({
+  store,
+}) => (
+  <Well bsSize="large">
+  <p>{JSON.stringify(store.questions)}</p>
+  </Well>
 )
+ // alternative form version for EXPORT,
+  // <Form>
+  //   <FormGroup controlId="formControlsTextarea">
+  //     <ControlLabel>JSON</ControlLabel>
+  //     <FormControl bsSize="lg" componentClass="textarea" readOnly autoresize="true"
+  //                 value={JSON.stringify(store.questions, null, '\t')}
+  //     />
+  //   </FormGroup>
+  // </Form>
+
 
 class ViewNav extends React.Component {
 
@@ -499,7 +599,6 @@ class ViewNav extends React.Component {
 }
 
 
-
 class FormBuilder extends React.Component {
 
   render() {
@@ -523,14 +622,16 @@ class FormBuilder extends React.Component {
         <div>
           { view === "CREATE" ?  <Create questions={questions} /> : null}
           { view === "EXPORT" ?  <Export store={this.props.store} /> : null}
+          { view === "PREVIEW" ?  <Preview store={this.props.store} /> : null}
+
         </div>
       </div>
     );
   }
 }
 
-/////////// END REACT COMPONENTS///////////////
 
+/////////// END REACT COMPONENTS///////////////
 
 // define a render function that can be subscribed, and will be reacalled after
 // any update to the store's state.

@@ -6,9 +6,8 @@ import { Form, FormGroup, FormControl, ControlLabel, Col,
         Button, ButtonToolbar,
         Well,
         Nav, NavItem,
-        Radio, ToggleButtonGroup, ToggleButton, } from 'react-bootstrap';
-// import 'bootstrap/dist/css/bootstrap.css';
-// import 'bootstrap/dist/css/bootstrap-theme.css';
+        ToggleButtonGroup, ToggleButton, } from 'react-bootstrap';
+
 import './index.css';
 
 
@@ -23,11 +22,10 @@ const update = (stateList, action, path, fn) => {
   // each state is either the top level state or a subInput (list),
   return stateList.map((question) => {
     // get all parents outside of my path (current head)
-    // console.log(question)
     if (question.id !== head){
       return question;
     }
-    // this is in the path. if we still have a tail, keep going but we need this question and its subInput
+    // Still in the path. If we have a tail- continue, keeping this question and its subInput
     else if (tail.length > 0 ) {
       return {
       ...question,
@@ -35,8 +33,8 @@ const update = (stateList, action, path, fn) => {
                               // ^^^copy my subInput//
       };
     }
-    // length tail = 0 >>> then head IS my parent's id, add me to this
-    // question's subInput.
+    // length tail = 0 >>> then head id the id we are seeking.
+     // Update the question using the provided function
     else {
       return fn(action, question);
     }
@@ -113,7 +111,7 @@ const deleteQuestion = (stateList, id, pathTo) => {
   })
 }
 ////////////// REDUCERS /////////////////
-// questions is the forms reducer for the Create 'page'.
+// questions is the forms reducer for  Create .
 let qId = 0;
 const questions = (state = [], action) => {
   switch (action.type) {
@@ -177,7 +175,8 @@ const formBuilder = combineReducers({
   view,
 });
 
-// the store holds state for the form-builder application, questions is the reducer
+// the store holds state for the form-builder application,
+ // questions and view are reducers
 const store = createStore(formBuilder);
 
 
@@ -186,9 +185,9 @@ const store = createStore(formBuilder);
 class Condition extends React.Component {
   constructor(props) {
     super(props);
-    // bind handers here
+
     this.handleCondTypeChange = this.handleCondTypeChange.bind(this);
-    // this.handleCondValChange = this.handleCondValChange.bind(this);
+    this.handleCondValChange = this.handleCondValChange.bind(this);
   }
 
   handleCondTypeChange(evt, id, path) {
@@ -227,8 +226,9 @@ class Condition extends React.Component {
             </FormControl>
         </FormGroup>{" "}
         <FormGroup controlId={"condVal-" + id} >
-          {/* set type using the action attribute from 'add subInput' */}
           <FormControl
+            // could use conditionType to control this type. only "equals" allows text, all others numbers
+            // could cause weirdness around equals val being number when previewing later...
             type="text"
             placeholder="conditional value"
             onChange={(evt) => {this.handleCondValChange(evt, id, path)}}
@@ -267,7 +267,7 @@ const AnswerType = ({
 class Question extends React.Component {
   constructor(props) {
     super(props);
-    // bind handlers to 'this' here
+
     this.handleTextChange = this.handleTextChange.bind(this);
   }
 
@@ -283,72 +283,69 @@ class Question extends React.Component {
   render () {
 
   const { question,  onAnswerTypeChange } = this.props;
-  // const onAnswerTypeChange = this.props.onAnswerTypeChange;
 
-    return (
-      <div>
-          <Well bsSize="large">
-            {question.conditionType ? <Condition
-                                        id={question.id}
-                                        path={question.path}
-                                        conditionType={question.conditionType}
-                                        conditionValue={question.conditionValue}
-                                     /> : null}
-            <Form horizontal>
-              <FormGroup
-                controlId={"question-" + question.id}
-              >
-                <Col componentClass={ControlLabel} sm={2}>
-                  Question
-                </Col>
-                <Col  componentClass={ControlLabel} sm={10}>
-                  <FormControl
-                    type="text"
-                    onChange={(evt) => {this.handleTextChange(evt, question.id, question.path)}}
-                    value={question.text}
-                    placeholder="Enter question"
-                  />
-                </Col>
-              </FormGroup>
+  return (
+    <div>
+        <Well bsSize="large">
+          {question.conditionType ? <Condition
+                                      id={question.id}
+                                      path={question.path}
+                                      conditionType={question.conditionType}
+                                      conditionValue={question.conditionValue}
+                                   /> : null}
+          <Form horizontal>
+            <FormGroup
+              controlId={"question-" + question.id}
+            >
+              <Col componentClass={ControlLabel} sm={2}>
+                Question
+              </Col>
+              <Col  componentClass={ControlLabel} sm={10}>
+                <FormControl
+                  type="text"
+                  onChange={(evt) => {this.handleTextChange(evt, question.id, question.path)}}
+                  value={question.text}
+                  placeholder="Enter question"
+                />
+              </Col>
+            </FormGroup>
 
-              <AnswerType
-                id={question.id}
-                answerType={question.answerType}
-                // pass question.answerType to the value in the FormControl
-                onChange={ (value) => onAnswerTypeChange(question.id, value, question.path) }/>
+            <AnswerType
+              id={question.id}
+              answerType={question.answerType}
+              onChange={ (value) => onAnswerTypeChange(question.id, value, question.path) }/>
 
-              <ButtonToolbar>
-                  <Button bsStyle="primary" bsSize="sm"
-                    onClick={() => {
-                      store.dispatch({
-                        type: "ADD_SUB_Q",
-                        parentPath: question.path,
-                        conditionType:"equals",
-                        conditionValue: "",
-                        text: "",
-                        answerType: "text",
-                      });
-                    }}
-                  >
-                    Sub-Input
-                  </Button>
-                  {/*  TODO will need dispatch at some point */}
-                  <Button bsStyle="danger" bsSize="sm"
-                    onClick={ () => {
-                      store.dispatch({
-                        type: "DELETE_QUESTION",
-                        path: question.path,
-                        id: question.id,
-                      })
-                    }}
-                  >
-                    Delete
-                  </Button>
-              </ButtonToolbar>
-            </Form>
-        </Well>
-      </div>
-    );
+            <ButtonToolbar>
+                <Button bsStyle="primary" bsSize="sm"
+                  onClick={() => {
+                    store.dispatch({
+                      type: "ADD_SUB_Q",
+                      parentPath: question.path,
+                      conditionType:"equals",
+                      conditionValue: "",
+                      text: "",
+                      answerType: "text",
+                    });
+                  }}
+                >
+                Sub-Input
+                </Button>
+                <Button bsStyle="danger" bsSize="sm"
+                  onClick={ () => {
+                    store.dispatch({
+                      type: "DELETE_QUESTION",
+                      path: question.path,
+                      id: question.id,
+                    })
+                  }}
+                >
+                  Delete
+                </Button>
+            </ButtonToolbar>
+          </Form>
+      </Well>
+    </div>
+  );
   }
 }
 
@@ -402,7 +399,7 @@ class Create extends React.Component {
             store.dispatch({
               type: "ADD_QUESTION",
               text: "",
-              answerType: "number", //could be "radio" or "number"
+              answerType: "number", //could be "radio" or "text"
               conditionType:null,
             });
           }}
@@ -540,7 +537,6 @@ class Preview extends React.Component {
   // trigger display in the logic (helpers) of the PreviewQuestions class
 
   render () {
-    // const questions = this.state.questions;
     console.log("Preview")
     console.log(JSON.stringify(this.state))
     return (
@@ -549,10 +545,10 @@ class Preview extends React.Component {
         answers={this.state.answers}
         handleChange={this.handleChange}
       />
-        // handleChange={this.handleChange}
     );
   }
 }
+
 
 const Export = ({
   store,
@@ -584,10 +580,10 @@ class ViewNav extends React.Component {
   render () {
     return (
       <Nav bsStyle="tabs" onSelect={(k,evt) => this.handleSelect(k, evt)}>
-        <NavItem eventKey="CREATE" href="/home">
+        <NavItem eventKey="CREATE" >
           Create
         </NavItem>
-        <NavItem eventKey="PREVIEW" title="Item">
+        <NavItem eventKey="PREVIEW">
           Preview
         </NavItem>
         <NavItem eventKey="EXPORT" >
@@ -602,12 +598,10 @@ class ViewNav extends React.Component {
 class FormBuilder extends React.Component {
 
   render() {
-    console.log(store.getState()); //TODO REMOVE ME EVENTUALLY
-    // console.log(view);
+    console.log(store.getState()); //FIXME REMOVE ME EVENTUALLY
 
     const questions = this.props.store.questions;
     const view = this.props.store.view;
-    // const store = this.props.store; // I'm not working because of hoisting -- using the console as
 
     return (
       <div>
@@ -620,6 +614,7 @@ class FormBuilder extends React.Component {
         <ViewNav />
         </div>
         <div>
+          {/* FIXME */}
           { view === "CREATE" ?  <Create questions={questions} /> : null}
           { view === "EXPORT" ?  <Export store={this.props.store} /> : null}
           { view === "PREVIEW" ?  <Preview store={this.props.store} /> : null}

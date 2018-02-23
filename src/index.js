@@ -416,6 +416,7 @@ class Create extends React.Component {
 const RadioPreview = ({
   question,
   handleChange,
+  answers,
 }) => (
 
   <Form>
@@ -438,6 +439,7 @@ const RadioPreview = ({
 const TNPreview = ({
   question,
   handleChange,
+  answers,
 }) => (
   <Form>
   <FormGroup controlId={"question-" + question.id}>
@@ -445,6 +447,7 @@ const TNPreview = ({
     <FormControl
       type={question.answerType}
       placeholder={"Enter " + question.answerType}
+      value={answers[question.id].userIn}
       onChange={(evt) => handleChange(evt.target.value, question.id)}
     >
     </FormControl>
@@ -457,50 +460,58 @@ class PreviewQuestions extends React.Component {
 
   render () {
 
-    const { questions, answers, handleChange } = this.props;
+    const { questions, answers, handleChange, updateAnswers } = this.props;
 
     // returns a list of subInput to be rendered when user answers match condition set in form
     const displayNext = (question, answers) => {
-        question.subInput.filter( q => (checkAnsVal(q, answers[q.id]))
-      )}
+      const userIn = answers[question.id].userIn;
+      // console.log(userIn)
+      const newQs = question.subInput.filter( q => (checkAnsVal(q, userIn)));
+      updateAnswers(newQs);
+      return newQs;
+      }
 
+// FIXME -- need to update answers to have new display questions.
 
-
-    const checkAnsVal = ( question, answer ) => {
+    const checkAnsVal = ( question, userIn ) => {
+      // console.log(answer)
+      // const userIn = answer[question.id].userIn
       switch (question.conditionType) {
-        case "equals":
-          return (answer.userIn === question.conditionValue)
+        case "equal":
+          return (userIn === question.conditionValue)
         case "greater":
-          return (answer.userIn > question.conditionValue)
+          return (userIn > question.conditionValue)
         case "less":
-          return (answer.userIn < question.conditionValue)
-        // defualt:
-          // return null // not good, would be read as false? do I want/need a default
+          return (userIn < question.conditionValue)
     }}
 
-// second iteration of preview returns [] because there is no userIn .... needs && answers.id.userIn not null
+    const getPreviewType = (question) => {
+       return (question.answerType === "radio") ?
+                <RadioPreview
+                  question={question}
+                  handleChange={handleChange}
+                  answers={answers}
+                /> :
+                <TNPreview
+                  question={question}
+                  handleChange={handleChange}
+                  answers={answers}
+                  />
+            }
+
     return (
       <ul style={{listStyle: 'none'}}>
-        {questions.map( question =>
+        {!questions ? null : questions.map( question =>
           <li key={question.id}>
-            { (question.answerType === "radio") ?
-                  <RadioPreview
-                    question={question}
-                    handleChange={handleChange}
-                  /> :
-                  <TNPreview
-                    question={question}
-                    handleChange={handleChange}
-                    />
-              }
-              { answers[question.id] && answers[question.id].userIn ?
-                  <PreviewQuestions
-                      questions={displayNext(question, answers)}
-                      answers={answers}
-                      handleChange={handleChange}
-                    /> : null
+            {getPreviewType(question)}
 
-            }
+            { answers[question.id] && answers[question.id].userIn ?
+                <PreviewQuestions
+                    questions={displayNext(question, answers)}
+                    answers={answers}
+                    handleChange={handleChange}
+                  /> : null
+                }
           </li>
         )}
       </ul>
@@ -520,57 +531,36 @@ class Preview extends React.Component {
         return acc;
       },
     {})
-    // const answers = this.props.store.questions.map(
-    //                                           question => {
-    //                                             return {id: question.id,
-    //                                                     userIn: "",
-    //                                                     // type: question.conditionType,
-    //                                                     }
-    //                                               }
-    //                                           );
 
     this.state = answers
-          // {
-          //       questions: this.props.store.questions,
-          //       answers: answers,
-          //
-          //       }
-                // answers {id: {userIn: ""},
-                //             id: {userIn:""},
-                //           }
-                // filter a list out of answers coresponding to each question
-                // using object for each answer allows mulitple triggers on the
-                // same input. (and should?)
-                // this list of
+                // answers {id: {userIn:""},
+                //          id: {userIn:""} }
+
     this.handleChange = this.handleChange.bind(this)
+    this.updateAnswers = this.updateAnswers.bind(this)
 
   }
-
-  // handleChange (value, id) {
-  //   this.setState((state) => {
-  //     return {questions: state.questions,
-  //             answers: state.answers.map( (answer) => {
-  //               if (answer.id !== id){
-  //                 return answer
-  //               }else {
-  //                 return {
-  //                   ...answer,
-  //                   userIn: value
-  //                 }
-  //               }
-  //             })
-  //           }
-  //         })
-  // }
 
   handleChange (value, qid) {
     console.log(value, qid)
     this.setState({[qid]: {...qid, userIn: value}})
   }
 
+// just adding new empty answers to the existing state.
+  updateAnswers (questions){
+    const newState = this.state
 
-  // don't think questions will ever change, updates to answers will
-  // trigger display in the logic (helpers) of the PreviewQuestions class
+    for (var i = 0; i < questions.length; i++){
+      var qId = questions[i].id;
+      !newState[qId] ? newState[qId] = {userIn: ""} : newState[qId]
+    }
+
+    this.setState(newState)
+    console.log("newState")
+    console.log(this.state)
+
+  }
+
 
   render () {
     console.log("Preview")
@@ -580,6 +570,7 @@ class Preview extends React.Component {
         questions={this.props.store.questions}
         answers={this.state}
         handleChange={this.handleChange}
+        updateAnswers={this.updateAnswers}
       />
     );
   }

@@ -321,7 +321,7 @@ class Question extends React.Component {
                     store.dispatch({
                       type: "ADD_SUB_Q",
                       parentPath: question.path,
-                      conditionType:"equals",
+                      conditionType:"equal",
                       conditionValue: "",
                       text: "",
                       answerType: "text",
@@ -457,17 +457,28 @@ class PreviewQuestions extends React.Component {
 
   render () {
 
-    const { questions, handleChange } = this.props;
+    const { questions, answers, handleChange } = this.props;
 
-    // function filterForAnswer(question){
-    //
-    // }
-    //
-    // const displayQuestions = questions.filter(
-    //   if (question.id
-    //   return {question}
-    // )
+    // returns a list of subInput to be rendered when user answers match condition set in form
+    const displayNext = (question, answers) => {
+        question.subInput.filter( q => (checkAnsVal(q, answers[q.id]))
+      )}
 
+
+
+    const checkAnsVal = ( question, answer ) => {
+      switch (question.conditionType) {
+        case "equals":
+          return (answer.userIn === question.conditionValue)
+        case "greater":
+          return (answer.userIn > question.conditionValue)
+        case "less":
+          return (answer.userIn < question.conditionValue)
+        // defualt:
+          // return null // not good, would be read as false? do I want/need a default
+    }}
+
+// second iteration of preview returns [] because there is no userIn .... needs && answers.id.userIn not null
     return (
       <ul style={{listStyle: 'none'}}>
         {questions.map( question =>
@@ -480,9 +491,16 @@ class PreviewQuestions extends React.Component {
                   <TNPreview
                     question={question}
                     handleChange={handleChange}
-                   />
+                    />
+              }
+              { answers[question.id] && answers[question.id].userIn ?
+                  <PreviewQuestions
+                      questions={displayNext(question, answers)}
+                      answers={answers}
+                      handleChange={handleChange}
+                    /> : null
+
             }
-            {/* {is the question id in answers ? render : null} */}
           </li>
         )}
       </ul>
@@ -495,20 +513,31 @@ class Preview extends React.Component {
   constructor(props) {
     super(props);
 
-    var answers = this.props.store.questions.map(
-                                              question => {
-                                                return {id: question.id,
-                                                        userIn: "",
-                                                        type: question.conditionType,
-                                                        }
-                                                  }
-                                              );
 
-    this.state = {
-                questions: this.props.store.questions,
-                answers: answers,
-                }
-                // answers [{id:qid, val:userin},]
+    const answers = this.props.store.questions.reduce(
+      (acc, question) => {
+        acc[question.id] = {userIn: ""}
+        return acc;
+      },
+    {})
+    // const answers = this.props.store.questions.map(
+    //                                           question => {
+    //                                             return {id: question.id,
+    //                                                     userIn: "",
+    //                                                     // type: question.conditionType,
+    //                                                     }
+    //                                               }
+    //                                           );
+
+    this.state = answers
+          // {
+          //       questions: this.props.store.questions,
+          //       answers: answers,
+          //
+          //       }
+                // answers {id: {userIn: ""},
+                //             id: {userIn:""},
+                //           }
                 // filter a list out of answers coresponding to each question
                 // using object for each answer allows mulitple triggers on the
                 // same input. (and should?)
@@ -517,22 +546,29 @@ class Preview extends React.Component {
 
   }
 
-  handleChange (value, id) {
-    this.setState((state) => {
-      return {questions: state.questions,
-              answers: state.answers.map( (answer) => {
-                if (answer.id !== id){
-                  return answer
-                }else {
-                  return {
-                    ...answer,
-                    userIn: value
-                  }
-                }
-              })
-            }
-          })
+  // handleChange (value, id) {
+  //   this.setState((state) => {
+  //     return {questions: state.questions,
+  //             answers: state.answers.map( (answer) => {
+  //               if (answer.id !== id){
+  //                 return answer
+  //               }else {
+  //                 return {
+  //                   ...answer,
+  //                   userIn: value
+  //                 }
+  //               }
+  //             })
+  //           }
+  //         })
+  // }
+
+  handleChange (value, qid) {
+    console.log(value, qid)
+    this.setState({[qid]: {...qid, userIn: value}})
   }
+
+
   // don't think questions will ever change, updates to answers will
   // trigger display in the logic (helpers) of the PreviewQuestions class
 
@@ -541,8 +577,8 @@ class Preview extends React.Component {
     console.log(JSON.stringify(this.state))
     return (
       <PreviewQuestions
-        questions={this.state.questions}
-        answers={this.state.answers}
+        questions={this.props.store.questions}
+        answers={this.state}
         handleChange={this.handleChange}
       />
     );

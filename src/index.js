@@ -1,22 +1,32 @@
-import React  from 'react';
+
+import React from 'react';
 import ReactDOM from 'react-dom';
-import {createStore, combineReducers } from 'redux';
-import { Form, FormGroup, FormControl, ControlLabel, Col,
-        PageHeader,
-        Button, ButtonToolbar,
-        Well,
-        Nav, NavItem,
-        ToggleButtonGroup, ToggleButton, } from 'react-bootstrap';
+import { createStore, combineReducers } from 'redux';
+import {
+  Form,
+  FormGroup,
+  FormControl,
+  ControlLabel,
+  Col,
+  PageHeader,
+  Button,
+  ButtonToolbar,
+  Well,
+  Nav, NavItem,
+  ToggleButtonGroup,
+  ToggleButton,
+} from 'react-bootstrap';
 
 import './index.css';
 
 
-/////////////// Helper Functions //////////////
+// ********* Helper Functions *********
+
 const update = (stateList, action, path, fn) => {
   // The path attribute acts as direct queue leading to the child.
   // for addding subInput path is to the parent, for everything else it is the
   // question object itself
-  const [ head, ...tail ] = path;
+  const [head, ...tail] = path;
 
   // using map give back the state as a list...
   // each state is either the top level state or a subInput (list),
@@ -457,59 +467,64 @@ const TNPreview = ({
 
 
 class PreviewQuestions extends React.Component {
+  constructor(props) {
+    super(props);
+
+    // this.displayNext = this.displayNext.bind(this);
+    // this.checkAnsVal = this.checkAnsVal.bind(this);
+    // this.getPreviewType = this.getPreviewType.bind(this);
+  }
+  // const questions = this.props.questions;
+  // const { questions, answers, handleChange } = this.props;
+
+  // returns a list of subInput to be rendered when user answers match condition set in form
+  displayNext = (question, answers) => {
+    const userIn = answers[question.id].userIn;
+    const newQs = question.subInput.filter( q => (this.checkAnsVal(q, userIn)));
+    return newQs;
+  }
+
+  checkAnsVal = ( question, userIn ) => {
+    switch (question.conditionType) {
+      case "equal":
+        return (userIn === question.conditionValue)
+      case "greater":
+        return (userIn > question.conditionValue)
+      case "less":
+        return (userIn < question.conditionValue)
+  }}
+
+  getPreviewType = (question) => {
+    const { questions, answers, handleChange } = this.props;
+
+     return (question.answerType === "radio") ?
+              <RadioPreview
+                question={question}
+                handleChange={handleChange}
+                answers={answers}
+              /> :
+              <TNPreview
+                question={question}
+                handleChange={handleChange}
+                answers={answers}
+                />
+  }
+
 
   render () {
-
-    const { questions, answers, handleChange, updateAnswers } = this.props;
-
-    // returns a list of subInput to be rendered when user answers match condition set in form
-    const displayNext = (question, answers) => {
-      const userIn = answers[question.id].userIn;
-      // console.log(userIn)
-      const newQs = question.subInput.filter( q => (checkAnsVal(q, userIn)));
-      updateAnswers(newQs);
-      return newQs;
-      }
-
-// FIXME -- need to update answers to have new display questions.
-
-    const checkAnsVal = ( question, userIn ) => {
-      // console.log(answer)
-      // const userIn = answer[question.id].userIn
-      switch (question.conditionType) {
-        case "equal":
-          return (userIn === question.conditionValue)
-        case "greater":
-          return (userIn > question.conditionValue)
-        case "less":
-          return (userIn < question.conditionValue)
-    }}
-
-    const getPreviewType = (question) => {
-       return (question.answerType === "radio") ?
-                <RadioPreview
-                  question={question}
-                  handleChange={handleChange}
-                  answers={answers}
-                /> :
-                <TNPreview
-                  question={question}
-                  handleChange={handleChange}
-                  answers={answers}
-                  />
-            }
+    const { questions, answers } = this.props;
 
     return (
-      <ul style={{listStyle: 'none'}}>
-        {!questions ? null : questions.map( question =>
-          <li key={question.id}>
-            {getPreviewType(question)}
 
-            { answers[question.id] && answers[question.id].userIn ?
+      <ul style={{listStyle: 'none'}}>
+        { questions.length === 0 ? null : questions.map( question =>
+          <li key={question.id}>
+            {this.getPreviewType(question)}
+            {question.subInput.length  ?
                 <PreviewQuestions
-                    questions={displayNext(question, answers)}
-                    answers={answers}
-                    handleChange={handleChange}
+                    questions={this.displayNext(question, answers)}
+                    answers={this.props.answers}
+                    handleChange={this.props.handleChange}
                   /> : null
                 }
           </li>
@@ -520,45 +535,54 @@ class PreviewQuestions extends React.Component {
 }
 
 
+
 class Preview extends React.Component {
   constructor(props) {
     super(props);
 
 
-    const answers = this.props.store.questions.reduce(
-      (acc, question) => {
-        acc[question.id] = {userIn: ""}
-        return acc;
-      },
-    {})
-
-    this.state = answers
+    // const answers = this.props.store.questions.reduce(
+    //   (acc, question) => {
+    //     acc[question.id] = {userIn: ""}
+    //     return acc;
+    //   },
+    // {})
+    // try doing this recursively setting the state for all of the questions
+    // and subInput instead of just the top level.
+    this.state = this.flattenQuestions(props.store.questions)
                 // answers {id: {userIn:""},
                 //          id: {userIn:""} }
 
     this.handleChange = this.handleChange.bind(this)
-    this.updateAnswers = this.updateAnswers.bind(this)
+    // this.updateAnswers = this.updateAnswers.bind(this)
 
   }
+
+
+   flattenQuestions (questions)  {
+
+    let stack = [...questions];
+    let a = {}
+
+    while (stack.length > 0) {
+      const currentQuestion = stack.pop();
+      // add question to ansers object
+      a[currentQuestion.id] = {userIn: ""};
+      const subInput = currentQuestion.subInput;
+      // add all subInput to the stack
+      if (subInput.length) {
+        stack = stack.concat(subInput)
+      }
+      if (stack.length === 0) {
+        return a;
+      }
+    }
+  }
+
 
   handleChange (value, qid) {
     console.log(value, qid)
-    this.setState({[qid]: {...qid, userIn: value}})
-  }
-
-// just adding new empty answers to the existing state.
-  updateAnswers (questions){
-    const newState = this.state
-
-    for (var i = 0; i < questions.length; i++){
-      var qId = questions[i].id;
-      !newState[qId] ? newState[qId] = {userIn: ""} : newState[qId]
-    }
-
-    this.setState(newState)
-    console.log("newState")
-    console.log(this.state)
-
+    this.setState({[qid]: {...this.state[qid], userIn: value}})
   }
 
 
@@ -570,7 +594,7 @@ class Preview extends React.Component {
         questions={this.props.store.questions}
         answers={this.state}
         handleChange={this.handleChange}
-        updateAnswers={this.updateAnswers}
+        // updateAnswers={this.updateAnswers}
       />
     );
   }

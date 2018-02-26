@@ -51,7 +51,8 @@ const update = (stateList, action, path, fn) => {
 };
 
 const updateSubInput = (action, question) => {
-  const subId = qId++;
+  const subId = qId;
+  qId += 1;
   return {
     ...question,
     subInput: [...question.subInput, {

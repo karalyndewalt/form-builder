@@ -1,12 +1,14 @@
+import { combineReducers } from 'redux';
+
+// qId is the question id/index
+let qId = 0;
+
 // ********* Helper Functions *********
-
+// The path attribute acts as direct queue leading to the child.
+// for addding subInput path is to the parent, for everything else it is the
+// question object itself
 const update = (stateList, action, path, fn) => {
-  console.log(stateList, action, path)
-  // The path attribute acts as direct queue leading to the child.
-  // for addding subInput path is to the parent, for everything else it is the
-  // question object itself
   const [head, ...tail] = path;
-
   // using map give back the state as a list...
   // each state is either the top level state or a subInput (list),
   return stateList.map((question) => {
@@ -85,7 +87,7 @@ const deleteQuestion = (stateList, id, pathTo) => {
 
 // ************* REDUCERS *************
 // questions is the forms reducer for  Create .
-let qId = 0;
+
 const questions = (state = [], action) => {
   switch (action.type) {
     case 'ADD_QUESTION': {
@@ -144,6 +146,8 @@ const view = (
   }
 };
 
-export { questions, view };
-// export default (view, questions);
-// export default ;
+// export { questions, view };
+export default combineReducers({
+  questions,
+  view,
+});

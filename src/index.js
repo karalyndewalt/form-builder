@@ -18,6 +18,7 @@ import {
 } from 'react-bootstrap';
 
 import rootReducer from './reducers';
+import ExportJSON from './components/Export';
 import './index.css';
 
 /* eslint react/prop-types: 0 */
@@ -26,14 +27,10 @@ import './index.css';
 // /* eslint import/no-unresolved: 0 */
 // /* eslint import/extensions: 0 */
 
-// const formBuilder = combineReducers({
-//   questions,
-//   view,
-// });
-
 // the store holds state for the form-builder application,
 // questions and view are reducers
 const store = createStore(rootReducer);
+console.log(store);
 
 
 // *************  REACT COMPONENTS *************
@@ -439,22 +436,13 @@ class Preview extends React.Component {
 }
 
 
-const Export = ({
-  store,
-}) => (
-  <Well bsSize="large">
-    <p>{JSON.stringify(store.questions)}</p>
-  </Well>
-);
-// alternative form version for EXPORT,
-// <Form>
-//   <FormGroup controlId="formControlsTextarea">
-//     <ControlLabel>JSON</ControlLabel>
-//     <FormControl bsSize="lg" componentClass="textarea" readOnly autoresize="true"
-//                 value={JSON.stringify(store.questions, null, '\t')}
-//     />
-//   </FormGroup>
-// </Form>
+// const Export = ({
+//   store,
+// }) => (
+//   <Well bsSize="large">
+//     <p>{JSON.stringify(store.questions)}</p>
+//   </Well>
+// );
 
 
 class ViewNav extends React.Component {
@@ -506,7 +494,7 @@ class FormBuilder extends React.Component {
         <div>
           {/* FIXME */}
           { view === "CREATE" ?  <Create questions={questions} /> : null}
-          { view === "EXPORT" ?  <Export store={this.props.store} /> : null}
+          { view === "EXPORT" ?  <ExportJSON store={this.props.store} /> : null}
           { view === "PREVIEW" ?  <Preview store={this.props.store} /> : null}
         </div>
       </div>

@@ -1,5 +1,14 @@
-
-
+import React from 'react';
+import {
+  Form,
+  FormGroup,
+  FormControl,
+  ControlLabel,
+  Col,
+  Button,
+  ButtonToolbar,
+  Well,
+} from 'react-bootstrap';
 
 class Condition extends React.Component {
   constructor(props) {
@@ -10,8 +19,8 @@ class Condition extends React.Component {
   }
 
   handleCondTypeChange(evt) {
-    const { id, path } = this.props;
-    store.dispatch({
+    const { id, path, dispatch } = this.props;
+    dispatch({
       type: 'CHANGE_COND_TYPE',
       id,
       conditionType: evt.target.value,
@@ -20,8 +29,8 @@ class Condition extends React.Component {
   }
 
   handleCondValChange(evt) {
-    const { id, path } = this.props;
-    store.dispatch({
+    const { id, path, dispatch } = this.props;
+    dispatch({
       type: 'CHANGE_COND_VAL',
       id,
       conditionValue: evt.target.value,
@@ -97,7 +106,8 @@ class Question extends React.Component {
 
   handleTextChange(evt) {
     const { id, path } = this.props.question;
-    store.dispatch({
+    const { dispatch } = this.props.store;
+    dispatch({
       type: 'CHANGE_TEXT',
       id,
       text: evt.target.value,
@@ -107,6 +117,7 @@ class Question extends React.Component {
 
   render() {
     const { question, onAnswerTypeChange } = this.props;
+    const { dispatch } = this.props.store;
 
     return (
       <div>
@@ -117,6 +128,7 @@ class Question extends React.Component {
               path={question.path}
               conditionType={question.conditionType}
               conditionValue={question.conditionValue}
+              dispatch={dispatch}
             /> : null
           }
           <Form horizontal>
@@ -147,7 +159,7 @@ class Question extends React.Component {
                 bsStyle="primary"
                 bsSize="sm"
                 onClick={() => {
-                  store.dispatch({
+                  dispatch({
                     type: 'ADD_SUB_Q',
                     parentPath: question.path,
                     conditionType: 'equal',
@@ -163,7 +175,7 @@ class Question extends React.Component {
                 bsStyle="danger"
                 bsSize="sm"
                 onClick={() => {
-                  store.dispatch({
+                  dispatch({
                     type: 'DELETE_QUESTION',
                     path: question.path,
                     id: question.id,
@@ -184,37 +196,40 @@ class Question extends React.Component {
 const Questions = ({
   questions,
   onAnswerTypeChange,
+  store,
 }) => (
   <ul style={{ listStyle: 'none' }}>
     {questions.map(question => (
       <li key={question.id}>
         <Question
           question={question}
+          store={store}
           onAnswerTypeChange={onAnswerTypeChange}
         />
         {question.subInput ?
           <Questions
             questions={question.subInput}
+            store={store}
             onAnswerTypeChange={onAnswerTypeChange}
           /> : null}
       </li>
-    )
-  )}
+    ))}
   </ul>
 );
 
 
 class Create extends React.Component {
-
   render() {
-    const { questions } = this.props;
+    const { store } = this.props.store;
+    const { questions } = this.props.store;
 
     return (
       <div>
         <div>
           <Questions
             questions={questions}
-            onAnswerTypeChange={ (id, answerType, path) => {
+            store={store}
+            onAnswerTypeChange={(id, answerType, path) => {
               store.dispatch({
                 type: 'CHANGE_TYPE',
                 id,
@@ -234,15 +249,18 @@ class Create extends React.Component {
               store.dispatch({
                 type: 'ADD_QUESTION',
                 text: '',
-                answerType: 'number', //could be "radio" or "text"
+                answerType: 'number', // could be "radio" or "text"
                 conditionType: null,
                 });
                 }}
           >
-            Add Input
+          Add Input
           </Button>
         </div>
       </div>
     );
   }
 }
+
+
+export default Create;

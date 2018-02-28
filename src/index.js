@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { createStore } from 'redux';
@@ -19,13 +18,11 @@ import {
 
 import rootReducer from './reducers';
 import ExportJSON from './components/Export';
+// import Create from './components/Create';
 import './index.css';
 
-/* eslint react/prop-types: 0 */
-/* eslint react/jsx-filename-extension: 0 */
-/* eslint react/no-multi-comp: 0 */
-// /* eslint import/no-unresolved: 0 */
-// /* eslint import/extensions: 0 */
+
+
 
 // the store holds state for the form-builder application,
 // questions and view are reducers
@@ -232,14 +229,12 @@ const Questions = ({
             onAnswerTypeChange={onAnswerTypeChange}
           /> : null}
       </li>
-    )
-  )}
+    ))}
   </ul>
 );
 
 
 class Create extends React.Component {
-
   render() {
     const { questions } = this.props;
 
@@ -248,7 +243,7 @@ class Create extends React.Component {
         <div>
           <Questions
             questions={questions}
-            onAnswerTypeChange={ (id, answerType, path) => {
+            onAnswerTypeChange={(id, answerType, path) => {
               store.dispatch({
                 type: 'CHANGE_TYPE',
                 id,
@@ -268,7 +263,7 @@ class Create extends React.Component {
               store.dispatch({
                 type: 'ADD_QUESTION',
                 text: '',
-                answerType: 'number', //could be "radio" or "text"
+                answerType: 'number', // could be "radio" or "text"
                 conditionType: null,
                 });
                 }}
@@ -367,18 +362,19 @@ class PreviewQuestions extends React.Component {
     return (
 
       <ul style={{ listStyle: 'none' }}>
-        { questions.length === 0 ? null : questions.map(question =>
+        { questions.length === 0 ? null : questions.map(question => (
           <li key={question.id}>
             {this.getPreviewType(question)}
-            {question.subInput.length  ?
+            {question.subInput.length ?
               <PreviewQuestions
-                  questions={this.displayNext(question, answers)}
-                  answers={this.props.answers}
-                  handleChange={this.props.handleChange}
-                /> : null
+                questions={this.displayNext(question, answers)}
+                answers={this.props.answers}
+                handleChange={this.props.handleChange}
+              /> : null
                 }
           </li>
-        )}
+        ))
+        }
       </ul>
     );
   }
@@ -394,7 +390,7 @@ class Preview extends React.Component {
   }
 
 
-   flattenQuestions(questions)  {
+   flattenQuestions(questions) {
 
     let stack = [...questions];
     let answers = {};
@@ -478,6 +474,7 @@ class FormBuilder extends React.Component {
   render() {
     console.log(store.getState()); //FIXME REMOVE ME EVENTUALLY
 
+    // const store = this.props.store;
     const questions = this.props.store.questions;
     const view = this.props.store.view;
 
@@ -489,13 +486,13 @@ class FormBuilder extends React.Component {
           </PageHeader>
         </div>
         <div>
-        <ViewNav />
+          <ViewNav />
         </div>
         <div>
           {/* FIXME */}
-          { view === "CREATE" ?  <Create questions={questions} /> : null}
-          { view === "EXPORT" ?  <ExportJSON store={this.props.store} /> : null}
-          { view === "PREVIEW" ?  <Preview store={this.props.store} /> : null}
+          { view === 'CREATE' ? <Create questions={questions} /> : null}
+          { view === 'EXPORT' ? <ExportJSON store={this.props.store} /> : null}
+          { view === 'PREVIEW' ? <Preview store={this.props.store} /> : null}
         </div>
       </div>
     );
@@ -514,7 +511,8 @@ const render = () => {
     // questions={store.getState().questions}
     // view={}
     />,
-    document.getElementById('root'));
+    document.getElementById('root')
+  );
 };
 
 store.subscribe(render);

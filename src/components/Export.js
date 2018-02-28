@@ -1,8 +1,6 @@
 import React from 'react';
 import { Well } from 'react-bootstrap';
 
-/* eslint react/jsx-filename-extension: 0 */
-
 const ExportJSON = ({ store }) => (
   <Well bsSize="large">
     <p>{JSON.stringify(store.questions)}</p>

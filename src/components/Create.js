@@ -10,6 +10,7 @@ import {
   Well,
 } from 'react-bootstrap';
 
+
 class Condition extends React.Component {
   constructor(props) {
     super(props);
@@ -182,7 +183,7 @@ class Question extends React.Component {
                   });
                 }}
               >
-                  Delete
+              Delete
               </Button>
             </ButtonToolbar>
           </Form>
@@ -220,17 +221,18 @@ const Questions = ({
 
 class Create extends React.Component {
   render() {
-    const { store } = this.props.store;
-    const { questions } = this.props.store;
+    const { store } = this.props;
+    const { dispatch } = store;
+    const { questions } = store.getState();
 
     return (
       <div>
         <div>
           <Questions
-            questions={questions}
             store={store}
+            questions={questions}
             onAnswerTypeChange={(id, answerType, path) => {
-              store.dispatch({
+              dispatch({
                 type: 'CHANGE_TYPE',
                 id,
                 answerType,
@@ -246,7 +248,7 @@ class Create extends React.Component {
             bsSize="large"
             active
             onClick={() => {
-              store.dispatch({
+              dispatch({
                 type: 'ADD_QUESTION',
                 text: '',
                 answerType: 'number', // could be "radio" or "text"
@@ -254,7 +256,7 @@ class Create extends React.Component {
                 });
                 }}
           >
-          Add Input
+            Add Input
           </Button>
         </div>
       </div>

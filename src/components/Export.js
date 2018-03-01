@@ -1,9 +1,9 @@
 import React from 'react';
 import { Well } from 'react-bootstrap';
 
-const ExportJSON = ({ store }) => (
+const ExportJSON = ({ questions }) => (
   <Well bsSize="large">
-    <p>{JSON.stringify(store.questions)}</p>
+    <p>{JSON.stringify(questions)}</p>
   </Well>
 );
 
